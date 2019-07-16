@@ -2,8 +2,9 @@ PROJECT = emq_web_hook
 PROJECT_DESCRIPTION = EMQ Webhook Plugin
 PROJECT_VERSION = 2.3.1
 
-DEPS = clique
+DEPS = clique dogstatsd
 dep_clique  = git https://github.com/emqtt/clique
+dep_dogstatsd = git https://github.com/WhoopInc/dogstatsde 0.8.0
 
 BUILD_DEPS = emqttd
 dep_emqttd = git https://github.com/emqtt/emqttd master

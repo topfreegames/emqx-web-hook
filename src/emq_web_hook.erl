@@ -225,16 +225,28 @@ on_message_acked(ClientId, Username, Message = #mqtt_message{topic = Topic}, {Fi
 %% Internal functions
 %%--------------------------------------------------------------------
 
+-spec get_timestamp_ms() -> integer().
+get_timestamp_ms() ->
+    {Mega, Sec, Micro} = os:timestamp(),
+    (Mega*1000000 + Sec)*1000 + round(Micro/1000).
+
 send_http_request(Params) ->
     Params1 = iolist_to_binary(mochijson2:encode(Params)),
     Url = application:get_env(?APP, url, "http://127.0.0.1"),
     ?LOG(debug, "Url:~p, params:~s", [Url, Params1]),
+    StartTimeMs = get_timestamp_ms(),
     case httpc:request(post, {Url, [], "application/json", Params1}, [{timeout, 5000}], []) of
-        {ok, _} -> 
-            ok;
+        {ok, _} ->
+            Status = "success";
         {error, Reason} ->
-            ?LOG(error, "HTTP request error: ~p", [Reason]), ok %% TODO: return ok?
-    end.
+            Status = "failure",
+            ?LOG(error, "HTTP request error: ~p", [Reason])
+    end,
+    MetricName = "mqtt_broker.webhook.latency_ms",
+    MetricValue = get_timestamp_ms() - StartTimeMs,
+    MetricTags = #{ status => Status },
+    dogstatsd:histogram(MetricName, MetricValue, MetricTags),
+    ok.
 
 parse_rule(Rules) ->
     parse_rule(Rules, []).
